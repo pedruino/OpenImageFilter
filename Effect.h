@@ -1,0 +1,21 @@
+#pragma once
+#include "Bitmap.h"
+#include "Color.h"
+#include "kernels.h"
+
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <math.h>
+
+class Effect
+{
+public:
+	void Negative(Bitmap &image);
+	void Grayscale(Bitmap &image);
+	void Blur(Bitmap &image);
+
+	void Convolve(Bitmap &image);
+
+	Effect();
+	~Effect();
+};
