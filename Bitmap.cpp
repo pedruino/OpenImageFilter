@@ -101,9 +101,9 @@ Color Bitmap::GetPixel(int x, int y)
 
 		unsigned int pixel = this->_stride*y + 3 * x;
 
-		unsigned int red = (this->_pixelData[pixel + 2]);		//[R]ed
-		unsigned int green = (this->_pixelData[pixel + 1]);		//[G]reed
-		unsigned int blue = (this->_pixelData[pixel + 0]);		//[B]lue
+		unsigned char red = (this->_pixelData[pixel + 2]);		//[R]ed
+		unsigned char green = (this->_pixelData[pixel + 1]);		//[G]reed
+		unsigned char blue = (this->_pixelData[pixel + 0]);		//[B]lue
 
 		return Color(red, green, blue);
 	}
@@ -118,7 +118,7 @@ void Bitmap::SetPixel(int x, int y, Color color)
 	SetPixel(x, y, color.red(), color.green(), color.blue());
 }
 
-void Bitmap::SetPixel(int x, int y, int red, int green, int blue)
+void Bitmap::SetPixel(int x, int y, unsigned char red, unsigned char green, unsigned char blue)
 {
 	if (x < this->_width && y < this->_height)
 	{

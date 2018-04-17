@@ -23,7 +23,13 @@ void Effect::Negative(Bitmap &image)
 			Logger::PrintThreadForIteraction(x, y);
 #endif // DEBUG
 			Color color = image.GetPixel(x, y);
-			image.SetPixel(x, y, 255 - color.red(), 255 - color.green(), 255 - color.blue());
+			unsigned char r, g, b;
+
+			r = 255 - color.red();
+			g = 255 - color.green();
+			b = 255 - color.blue();
+
+			image.SetPixel(x, y, Color(r, g, b));
 		}
 	}
 }
@@ -37,15 +43,15 @@ void negative(unsigned char* pixelData, int offsetX, int offsetY, unsigned int w
 	{
 		for (y; y < h; y++)
 		{
-			unsigned int r, g, b;
+			unsigned char r, g, b;
 			unsigned int pixel = x + y;
 
 			r = pixelData[pixel];
 			g = pixelData[pixel + 1];
 			b = pixelData[pixel + 2];
 
-			//Color c = Color(255 - r, 255 - g, 255 - b);
-			Color c = Color(r* 0.114f, g* 0.587f, b * 0.299f);
+			Color c = Color(255 - r, 255 - g, 255 - b);
+			//Color c = Color(r* 0.114f, g* 0.587f, b * 0.299f);
 
 			pixelData[pixel] = c.red();
 			pixelData[pixel + 1] = c.green();
@@ -114,12 +120,12 @@ void Effect::Grayscale(Bitmap &image)
 #endif // DEBUG
 			Color color = image.GetPixel(x, y);
 
-			unsigned int grayed = 0;
+			unsigned char grayed = 0;
 			grayed += color.red() * 0.114;
 			grayed += color.green() * 0.587;
 			grayed += color.blue() * 0.299;
 
-			image.SetPixel(x, y, grayed, grayed, grayed);
+			image.SetPixel(x, y, Color(grayed, grayed, grayed));
 		}
 	}
 }
