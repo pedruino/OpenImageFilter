@@ -11,6 +11,7 @@ class Effect
 {
 public:
 	void Negative(Bitmap &image);
+	void NegativeParallel(Bitmap & image, int thread_number);
 	void Grayscale(Bitmap &image);
 	void Blur(Bitmap &image);
 
