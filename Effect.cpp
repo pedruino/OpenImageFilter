@@ -33,76 +33,76 @@ void Effect::Negative(Bitmap &image)
 		}
 	}
 }
-void negative(unsigned char* pixelData, int offsetX, int offsetY, unsigned int w, unsigned int h)
-{
-	int x = offsetX;
-	int y = offsetY;
-
-	//#pragma omp parallel for schedule(dynamic) private(x, y)
-	for (x; x < w; x++)
-	{
-		for (y; y < h; y++)
-		{
-			unsigned char r, g, b;
-			unsigned int pixel = x + y;
-
-			r = pixelData[pixel];
-			g = pixelData[pixel + 1];
-			b = pixelData[pixel + 2];
-
-			Color c = Color(255 - r, 255 - g, 255 - b);
-			//Color c = Color(r* 0.114f, g* 0.587f, b * 0.299f);
-
-			pixelData[pixel] = c.red();
-			pixelData[pixel + 1] = c.green();
-			pixelData[pixel + 2] = c.blue();
-		}
-	}
-}
-
-void Effect::NegativeParallel(Bitmap &image, int thread_number)
-{
-	unsigned int width = image.GetWidth();
-	unsigned int height = image.GetHeight();
-
-	unsigned int w_chunk = (unsigned int)(width / thread_number);
-	unsigned int h_chunk = (unsigned int)(height / thread_number);
-	int i, j;
-	char** chunks;
-
-	unsigned char* data = new unsigned char[image.GetPixelArraySize()];
-	memcpy(data, image.GetPixelData(), image.GetPixelArraySize());
-
-	//#pragma omp parallel for schedule(dynamic) private(i, j)
-	for (i = 0; i < width; i += w_chunk)
-	{
-		for (j = 0; j < height; j += h_chunk)
-		{
-#ifdef DEBUG
-			Logger::PrintThreadForIteraction(i, j);
-#endif // DEBUG
-
-			negative(data, i, j, w_chunk, h_chunk);
-		}
-	}
-
-	image.SetPixelData(data);
-
-	//
-	//	int x, y;
-	//#pragma omp parallel for schedule(dynamic) private(x, y) //shared(redcount, greencount, bluecount)
-	//	for (x = 0; x < width; x++)
-	//	{
-	//		for (y = 0; y < height; y++)
-	//		{
-	//#ifdef DEBUG
-	//			Logger::PrintThreadForIteraction(x, y);
-	//#endif // DEBUG
-	//			Color color = image.GetPixel(x, y);
-	//			image.SetPixel(x, y, 255 - color.red(), 255 - color.green(), 255 - color.blue());
-	//		}
-	//	}
-}
+//void negative(unsigned char* pixelData, int offsetX, int offsetY, unsigned int w, unsigned int h)
+//{
+//	int x = offsetX;
+//	int y = offsetY;
+//
+//	//#pragma omp parallel for schedule(dynamic) private(x, y)
+//	for (x; x < w; x++)
+//	{
+//		for (y; y < h; y++)
+//		{
+//			unsigned char r, g, b;
+//			unsigned int pixel = x + y;
+//
+//			r = pixelData[pixel];
+//			g = pixelData[pixel + 1];
+//			b = pixelData[pixel + 2];
+//
+//			Color c = Color(255 - r, 255 - g, 255 - b);
+//			//Color c = Color(r* 0.114f, g* 0.587f, b * 0.299f);
+//
+//			pixelData[pixel] = c.red();
+//			pixelData[pixel + 1] = c.green();
+//			pixelData[pixel + 2] = c.blue();
+//		}
+//	}
+//}
+//
+//void Effect::NegativeParallel(Bitmap &image, int thread_number)
+//{
+//	unsigned int width = image.GetWidth();
+//	unsigned int height = image.GetHeight();
+//
+//	unsigned int w_chunk = (unsigned int)(width / thread_number);
+//	unsigned int h_chunk = (unsigned int)(height / thread_number);
+//	int i, j;
+//	char** chunks;
+//
+//	unsigned char* data = new unsigned char[image.GetPixelArraySize()];
+//	memcpy(data, image.GetPixelData(), image.GetPixelArraySize());
+//
+//	//#pragma omp parallel for schedule(dynamic) private(i, j)
+//	for (i = 0; i < width; i += w_chunk)
+//	{
+//		for (j = 0; j < height; j += h_chunk)
+//		{
+//#ifdef DEBUG
+//			Logger::PrintThreadForIteraction(i, j);
+//#endif // DEBUG
+//
+//			negative(data, i, j, w_chunk, h_chunk);
+//		}
+//	}
+//
+//	image.SetPixelData(data);
+//
+//	//
+//	//	int x, y;
+//	//#pragma omp parallel for schedule(dynamic) private(x, y) //shared(redcount, greencount, bluecount)
+//	//	for (x = 0; x < width; x++)
+//	//	{
+//	//		for (y = 0; y < height; y++)
+//	//		{
+//	//#ifdef DEBUG
+//	//			Logger::PrintThreadForIteraction(x, y);
+//	//#endif // DEBUG
+//	//			Color color = image.GetPixel(x, y);
+//	//			image.SetPixel(x, y, 255 - color.red(), 255 - color.green(), 255 - color.blue());
+//	//		}
+//	//	}
+//}
 
 void Effect::Grayscale(Bitmap &image)
 {
@@ -292,11 +292,11 @@ void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], doub
 
 	int byteOffset = 0;
 
-	int offsetY, int offsetX;
-#pragma omp parallel for schedule(dynamic) private(offsetY, offsetX)
-	for (offsetY = filterOffset; offsetY < height - filterOffset; offsetY++)
+	//////int offsetY, int offsetX;
+	//#pragma omp parallel for schedule(dynamic) private(offsetY, offsetX)
+	for (int offsetY = filterOffset; offsetY < height - filterOffset; offsetY++)
 	{
-		for (offsetX = filterOffset; offsetX < width - filterOffset; offsetX++)
+		for (int offsetX = filterOffset; offsetX < width - filterOffset; offsetX++)
 		{
 			blue = 0;
 			green = 0;
@@ -304,6 +304,7 @@ void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], doub
 
 			byteOffset = offsetY * srcDataStride + offsetX * stepBytes;
 
+#pragma omp parallel for schedule(dynamic) private(offsetY, offsetX)
 			for (int filterY = -filterOffset; filterY <= filterOffset; filterY++)
 			{
 				for (int filterX = -filterOffset; filterX <= filterOffset; filterX++)

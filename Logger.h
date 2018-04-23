@@ -10,5 +10,6 @@ public:
 	double CetCurrentTime();
 	void GetElapsedTime(double startTime);
 	static void PrintThreadForIteraction(int x, int y);
+	void PrintCurrentThread();
 };
 
