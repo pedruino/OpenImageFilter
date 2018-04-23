@@ -88,7 +88,7 @@ void Effect::NegativeParallel(Bitmap &image, int thread_number)
 
 	image.SetPixelData(data);
 
-	//	
+	//
 	//	int x, y;
 	//#pragma omp parallel for schedule(dynamic) private(x, y) //shared(redcount, greencount, bluecount)
 	//	for (x = 0; x < width; x++)
@@ -130,7 +130,7 @@ void Effect::Grayscale(Bitmap &image)
 	}
 }
 
-void ConvolutionFilter(Bitmap &sourceImage, double xkernel[][3], double ykernel[][3], double factor, int bias, bool grayscale)
+void ConvolutionFilter(Bitmap &sourceImage, const double xkernel[][3], double ykernel[][3], double factor, int bias, bool grayscale)
 {
 	// Image dimensions stored in variables for convenience
 	int width = sourceImage.GetWidth();
@@ -155,7 +155,7 @@ void ConvolutionFilter(Bitmap &sourceImage, double xkernel[][3], double ykernel[
 	{
 		float rgb = 0;
 
-#pragma omp parallel for 
+#pragma omp parallel for
 		for (int i = 0; i < sourceImage.GetPixelArraySize(); i += stepBytes)
 		{
 #ifdef DEBUG
@@ -204,7 +204,7 @@ void ConvolutionFilter(Bitmap &sourceImage, double xkernel[][3], double ykernel[
 				rt = gt = bt = 0.0;
 
 				//position of the kernel center pixel
-				byteOffset = OffsetY * srcDataStride + OffsetX * 4;
+				byteOffset = OffsetY * srcDataStride + OffsetX * stepBytes;
 
 				//kernel calculations
 				for (int filterY = -filterOffset; filterY <= filterOffset; filterY++)
@@ -247,7 +247,7 @@ void ConvolutionFilter(Bitmap &sourceImage, double xkernel[][3], double ykernel[
 	sourceImage.SetPixelData(resultBuffer);
 }
 
-void ConvolutionFilter(Bitmap &sourceImage, double filterMatrix[][5], double factor, int bias, bool grayscale)
+void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], double factor, int bias, bool grayscale)
 {
 	// Image dimensions stored in variables for convenience
 	int width = sourceImage.GetWidth();
@@ -292,15 +292,17 @@ void ConvolutionFilter(Bitmap &sourceImage, double filterMatrix[][5], double fac
 
 	int byteOffset = 0;
 
-	for (int offsetY = filterOffset; offsetY < height - filterOffset; offsetY++)
+	int offsetY, int offsetX;
+#pragma omp parallel for schedule(dynamic) private(offsetY, offsetX)
+	for (offsetY = filterOffset; offsetY < height - filterOffset; offsetY++)
 	{
-		for (int offsetX = filterOffset; offsetX < width - filterOffset; offsetX++)
+		for (offsetX = filterOffset; offsetX < width - filterOffset; offsetX++)
 		{
 			blue = 0;
 			green = 0;
 			red = 0;
 
-			byteOffset = offsetY * srcDataStride + offsetX * 4;
+			byteOffset = offsetY * srcDataStride + offsetX * stepBytes;
 
 			for (int filterY = -filterOffset; filterY <= filterOffset; filterY++)
 			{
@@ -331,7 +333,6 @@ void ConvolutionFilter(Bitmap &sourceImage, double filterMatrix[][5], double fac
 			resultBuffer[byteOffset] = (blue);
 			resultBuffer[byteOffset + 1] = (green);
 			resultBuffer[byteOffset + 2] = (red);
-			//resultBuffer[byteOffset + 3] = 255;
 		}
 	}
 
@@ -348,16 +349,13 @@ void Effect::Convolve(Bitmap & image)
 	ConvolutionFilter(image, xSobel, ySobel, 1, 0, false);
 }
 
+void Effect::Convolve(Bitmap & image, const double filterMatrix[][5], double factor, int bias, bool grayscale)
+{
+	ConvolutionFilter(image, filterMatrix, factor, bias, grayscale);
+}
+
 void Effect::Blur(Bitmap & image)
 {
 	// Gaussian blur 5x5
-	double gaussian[][5] = {
-		{ 1,   4,  6,  4,  1 },
-		{ 4,  16, 24, 16,  4 },
-		{ 6,  24, 36, 24,  6 },
-		{ 4,  16, 24, 16,  4 },
-		{ 1,   4,  6,  4,  1 }
-	};
-
-	ConvolutionFilter(image, gaussian, 1 / 256.f, 0, false);
+	ConvolutionFilter(image, gaussian5x5, 1 / 256.f, 0, false);
 }

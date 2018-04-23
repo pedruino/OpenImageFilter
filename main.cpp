@@ -1,11 +1,12 @@
 #include <omp.h>
 #include "Bitmap.h"
 #include "Effect.h"
-
+#define KERNELS_H
 ////////////////////////////////////[ OPEN MP ]/////////////////////////////////////
 #undef DEBUG
 #include "Logger.h"
-#define THREAD_NUMBERS 1
+#include "main.h"
+#define THREAD_NUMBERS 4
 ////////////////////////////////////////////////////////////////////////////////////
 void main()
 {
@@ -17,9 +18,10 @@ void main()
 	start = omp_get_wtime();
 	///////////////////////////////////////////////////////////////////////////////////////////////
 
-	Bitmap* original = new Bitmap("./samples/original/nebula-17.bmp");
+	Bitmap* original = new Bitmap("./samples/original/profileimage.bmp");
 	Bitmap* negative = original->Clone();
 	Bitmap* grayscale = original->Clone();
+	Bitmap* gaussiano = original->Clone();
 	Bitmap* convolution = original->Clone();
 
 	Effect effect;
@@ -29,22 +31,24 @@ void main()
 	logger->GetElapsedTime(start);
 
 	////////////////////////////////////////// EXTRAS /////////////////////////////////////////////
+	start = logger->CetCurrentTime();
 	effect.Grayscale(*grayscale);
+	logger->GetElapsedTime(start);
+
+	// Current filter (SOBEL)
 	start = logger->CetCurrentTime();
+	effect.Convolve(*convolution);
 	logger->GetElapsedTime(start);
 
+	// Apply 5x times (for fun)
 	start = logger->CetCurrentTime();
-	effect.Blur(*convolution);
+	for (size_t i = 0; i < 50; i++)
+		effect.Convolve(*gaussiano, gaussian5x5, 1 / 256.f, 0, false);
 	logger->GetElapsedTime(start);
 
-	effect.Blur(*convolution);
-	effect.Blur(*convolution);
-	effect.Blur(*convolution);
-
-	logger->GetElapsedTime(start);
-
-	original->Save("./samples/original2.bmp");
-	negative->Save("./samples/negative2.bmp");
+	original->Save("./samples/original.bmp");
+	negative->Save("./samples/negative.bmp");
 	grayscale->Save("./samples/grayscale.bmp");
-	convolution->Save("./samples/convolution2.bmp");
+	gaussiano->Save("./samples/gaussiano.bmp");
+	convolution->Save("./samples/filter_solber.bmp");
 }

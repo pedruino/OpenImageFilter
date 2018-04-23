@@ -15,7 +15,8 @@ public:
 	void Grayscale(Bitmap &image);
 	void Blur(Bitmap &image);
 
-	void Convolve(Bitmap &image);
+	void Convolve(Bitmap & image);
+	void Convolve(Bitmap & image, const double filterMatrix[][5], double factor, int bias, bool grayscale);
 
 	Effect();
 	~Effect();
