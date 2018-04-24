@@ -1,3 +1,4 @@
+#pragma once
 #include <omp.h>
 #include "Bitmap.h"
 #include "Effect.h"
@@ -5,31 +6,26 @@
 #include <string.h>
 #include "functions.h"
 
-#define KERNELS_H
 ////////////////////////////////////[ OPEN MP ]/////////////////////////////////////
+#undef OPEN_MP_TEST
 #undef DEBUG
 #include "Logger.h"
-#include "main.h"
-#define THREAD_NUMBERS 4
 ////////////////////////////////////////////////////////////////////////////////////
+
 void main()
 {
+	double currentTime = 0;
 	Logger* logger = new Logger();
-	////////////////////////////////////[ OPEN MP ]////////////////////////////////////////////////
-	double start = 0, end = 0;
 
-	omp_set_num_threads(THREAD_NUMBERS);
-	start = omp_get_wtime();
-	///////////////////////////////////////////////////////////////////////////////////////////////
-
-	Bitmap* original = new Bitmap("./samples/original/nebula-17.bmp");
+	Bitmap* original = new Bitmap("./samples/original/profileimage.bmp");
 	Bitmap* negative = original->Clone();
 	Bitmap* grayscale = original->Clone();
-	Bitmap* gaussiano = original->Clone();
-	Bitmap* convolution = original->Clone();
+	Bitmap* gaussian = original->Clone();
+	Bitmap* sobel = original->Clone();
 
 	Effect effect;
 
+#ifdef OPEN_MP_TEST
 	for (size_t i = 0; i <= 5; i++)
 	{
 		// Uncomment to clone
@@ -41,13 +37,13 @@ void main()
 		printf("Thread number [%d]: \n", thread);
 		omp_set_num_threads(thread);
 
-		start = logger->CetCurrentTime();
+		currentTime = logger->CetCurrentTime();
 
-		#pragma omp parallel
+#pragma omp parallel
 		{
-			#pragma omp sections
+#pragma omp sections
 			{
-				#pragma omp section
+#pragma omp section
 				{
 					effect.Grayscale(*grayscale);
 #ifdef DEBUG
@@ -55,7 +51,7 @@ void main()
 #endif // DEBUG
 				}
 
-				#pragma omp section
+#pragma omp section
 				{
 					effect.Negative(*negative);
 #ifdef DEBUG
@@ -65,7 +61,7 @@ void main()
 			}
 		}
 
-		logger->GetElapsedTime(start);
+		logger->GetElapsedTime(currentTime);
 
 		// After all save file to hardrive
 		//std::string fname_neg = std::string("./samples/negative_") + NumberToString(thread) + std::string(".bmp");
@@ -74,26 +70,29 @@ void main()
 		//std::string fname_gray = std::string("./samples/grayscale_") + NumberToString(thread) + std::string(".bmp");
 		//grayscale->Save(fname_gray.c_str());
 	}
+#endif // OPEN_MP_TEST
 
-	////////////////////////////////////////// EXTRAS /////////////////////////////////////////////
-	//start = logger->CetCurrentTime();
-	//effect.Negative(*negative);
-	//logger->GetElapsedTime(start);
+	////////////////////////////////////////// EXTRAS ///////////////////////////////
+	// Uncomment below lines to get a pretty surprise
+	omp_set_num_threads(1);
+	currentTime = logger->CetCurrentTime();
+	effect.Negative(*negative);
+	logger->GetElapsedTime(currentTime);
 
-	//// Current filter (SOBEL)
-	//start = logger->CetCurrentTime();
-	//effect.Convolve(*convolution);
-	//logger->GetElapsedTime(start);
+	// Current filter (SOBEL)
+	currentTime = logger->CetCurrentTime();
+	effect.Convolve(*sobel, sobelx, sobely, 1, 0, false);
+	logger->GetElapsedTime(currentTime);
 
-	//// Apply 5x times (for fun)
-	//start = logger->CetCurrentTime();
-	//for (size_t i = 0; i < 50; i++)
-	//	effect.Convolve(*gaussiano, gaussian5x5, 1 / 256.f, 0, false);
-	//logger->GetElapsedTime(start);
+	// Apply 5x times (for fun)
+	currentTime = logger->CetCurrentTime();
+	for (size_t i = 0; i < 5; i++)
+		effect.Convolve(*gaussian, gaussian5x5, 1 / 256.f, 0, false);
+	logger->GetElapsedTime(currentTime);
 
-	//original->Save("./samples/original.bmp");
-	//convolution->Save("./samples/filter_solber.bmp");
-	//gaussiano->Save("./samples/gaussiano.bmp");
+	original->Save("./samples/original.bmp");
+	sobel->Save("./samples/filter.sobel.bmp");
+	gaussian->Save("./samples/gaussiano.bmp");
 	//////////////////////////////////////////////////////////////////////////////////////////////
 
 	negative->Save("./samples/negative.bmp");

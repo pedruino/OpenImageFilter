@@ -1,8 +1,4 @@
-#pragma once
-#include <omp.h>
 #include "Effect.h"
-#include "functions.h"
-#include "Logger.h"
 
 Effect::Effect() {}
 Effect::~Effect() {}
@@ -33,76 +29,6 @@ void Effect::Negative(Bitmap &image)
 		}
 	}
 }
-//void negative(unsigned char* pixelData, int offsetX, int offsetY, unsigned int w, unsigned int h)
-//{
-//	int x = offsetX;
-//	int y = offsetY;
-//
-//	//#pragma omp parallel for schedule(dynamic) private(x, y)
-//	for (x; x < w; x++)
-//	{
-//		for (y; y < h; y++)
-//		{
-//			unsigned char r, g, b;
-//			unsigned int pixel = x + y;
-//
-//			r = pixelData[pixel];
-//			g = pixelData[pixel + 1];
-//			b = pixelData[pixel + 2];
-//
-//			Color c = Color(255 - r, 255 - g, 255 - b);
-//			//Color c = Color(r* 0.114f, g* 0.587f, b * 0.299f);
-//
-//			pixelData[pixel] = c.red();
-//			pixelData[pixel + 1] = c.green();
-//			pixelData[pixel + 2] = c.blue();
-//		}
-//	}
-//}
-//
-//void Effect::NegativeParallel(Bitmap &image, int thread_number)
-//{
-//	unsigned int width = image.GetWidth();
-//	unsigned int height = image.GetHeight();
-//
-//	unsigned int w_chunk = (unsigned int)(width / thread_number);
-//	unsigned int h_chunk = (unsigned int)(height / thread_number);
-//	int i, j;
-//	char** chunks;
-//
-//	unsigned char* data = new unsigned char[image.GetPixelArraySize()];
-//	memcpy(data, image.GetPixelData(), image.GetPixelArraySize());
-//
-//	//#pragma omp parallel for schedule(dynamic) private(i, j)
-//	for (i = 0; i < width; i += w_chunk)
-//	{
-//		for (j = 0; j < height; j += h_chunk)
-//		{
-//#ifdef DEBUG
-//			Logger::PrintThreadForIteraction(i, j);
-//#endif // DEBUG
-//
-//			negative(data, i, j, w_chunk, h_chunk);
-//		}
-//	}
-//
-//	image.SetPixelData(data);
-//
-//	//
-//	//	int x, y;
-//	//#pragma omp parallel for schedule(dynamic) private(x, y) //shared(redcount, greencount, bluecount)
-//	//	for (x = 0; x < width; x++)
-//	//	{
-//	//		for (y = 0; y < height; y++)
-//	//		{
-//	//#ifdef DEBUG
-//	//			Logger::PrintThreadForIteraction(x, y);
-//	//#endif // DEBUG
-//	//			Color color = image.GetPixel(x, y);
-//	//			image.SetPixel(x, y, 255 - color.red(), 255 - color.green(), 255 - color.blue());
-//	//		}
-//	//	}
-//}
 
 void Effect::Grayscale(Bitmap &image)
 {
@@ -130,7 +56,9 @@ void Effect::Grayscale(Bitmap &image)
 	}
 }
 
-void ConvolutionFilter(Bitmap &sourceImage, const double xkernel[][3], double ykernel[][3], double factor, int bias, bool grayscale)
+
+
+void ConvolutionFilter(Bitmap &sourceImage, const double xkernel[][3], const double ykernel[][3], double factor, int bias, bool grayscale)
 {
 	// Image dimensions stored in variables for convenience
 	int width = sourceImage.GetWidth();
@@ -340,23 +268,18 @@ void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], doub
 	sourceImage.SetPixelData(resultBuffer);
 }
 
-void Effect::Convolve(Bitmap & image)
-{
-	//Sobel operator kernel for vertical pixel changes
-	double xSobel[][3] = { { -1, 0, 1 },	{ -2, 0, 2 },	{ -1, 0, 1 } };
-	//Sobel operator kernel for vertical pixel changes
-	double ySobel[][3] = { { 1,  2,  1 },	{ 0,  0,  0 },	{ -1, -2, -1 } };
-
-	ConvolutionFilter(image, xSobel, ySobel, 1, 0, false);
-}
-
-void Effect::Convolve(Bitmap & image, const double filterMatrix[][5], double factor, int bias, bool grayscale)
-{
-	ConvolutionFilter(image, filterMatrix, factor, bias, grayscale);
-}
-
 void Effect::Blur(Bitmap & image)
 {
 	// Gaussian blur 5x5
 	ConvolutionFilter(image, gaussian5x5, 1 / 256.f, 0, false);
+}
+
+void Effect::Convolve(Bitmap & image, const double xkernel[][3], const double ykernel[][3], double factor, int bias, bool grayscale)
+{
+	ConvolutionFilter(image, xkernel, ykernel, 1, 0, false);
+}
+
+void Effect::Convolve(Bitmap & image, const double kernel[][5], double factor, int bias, bool grayscale)
+{
+	ConvolutionFilter(image, kernel, factor, bias, grayscale);
 }

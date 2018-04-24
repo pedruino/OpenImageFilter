@@ -8,27 +8,18 @@ Bitmap::Bitmap(const char* filename)
 	fopen_s(&file, filename, "rb");
 
 	if (!file)
-	{
 		printf("Image could not be opened\n");
-		//return 0;
-	}
 
-	if (fread(this->_header, 1, 54, file) != 54) { // If not 54 bytes read : problem
+	if (fread(this->_header, 1, 54, file) != 54) // If not 54 bytes read : problem
 		printf("Not a correct BMP file\n");
-		//return false;
-	}
 
-	if (this->_header[0] != 'B' || this->_header[1] != 'M') {
+	if (this->_header[0] != 'B' || this->_header[1] != 'M')
 		printf("Not a correct BMP file\n");
-		//return 0;
-	}
 
 	this->_bitsPerPixel = this->_header[0x1C];
 	if (_bitsPerPixel != 24)
-	{
 		printf("This program is for 24bpp files. Your bmp is not that\n");
-		//return 0;
-	}
+
 	// Read ints from the byte array
 	this->_dataPos = *(int*)&(this->_header[0x0A]);
 	this->_pixelArrayImageSize = *(int*)&(this->_header[0x22]);
@@ -107,10 +98,7 @@ Color Bitmap::GetPixel(int x, int y)
 
 		return Color(red, green, blue);
 	}
-	else
-	{
-		std::cerr << "BAD INDEX\n"; std::cerr << "X: " << x << " Y: " << y << "\n";
-	}
+	else { std::cerr << "BAD INDEX\n"; std::cerr << "X: " << x << " Y: " << y << "\n"; }
 }
 
 void Bitmap::SetPixel(int x, int y, Color color)
