@@ -2,7 +2,7 @@
 
 Effect::Effect() {}
 Effect::~Effect() {}
-//#define DEBUG
+#undef DEBUG
 
 void Effect::Negative(Bitmap &image)
 {
@@ -10,14 +10,11 @@ void Effect::Negative(Bitmap &image)
 	unsigned int height = image.GetHeight();
 
 	int x, y;
-#pragma omp parallel for schedule(dynamic) private(x, y) //shared(redcount, greencount, bluecount)
+	#pragma omp parallel for schedule(dynamic) private(x, y)
 	for (x = 0; x < width; x++)
 	{
 		for (y = 0; y < height; y++)
 		{
-#ifdef DEBUG
-			Logger::PrintThreadForIteraction(x, y);
-#endif // DEBUG
 			Color color = image.GetPixel(x, y);
 			unsigned char r, g, b;
 
@@ -36,27 +33,25 @@ void Effect::Grayscale(Bitmap &image)
 	unsigned int height = image.GetHeight();
 
 	int x, y;
-#pragma omp parallel for schedule(dynamic) private(x, y)
-	for (x = 0; x < width; x++)
+	#pragma omp parallel 
 	{
-		for (y = 0; y < height; y++)
+		#pragma omp for schedule(dynamic) private(x, y)
+		for (x = 0; x < width; x++)
 		{
-#ifdef DEBUG
-			Logger::PrintThreadForIteraction(x, y);
-#endif // DEBUG
-			Color color = image.GetPixel(x, y);
+			for (y = 0; y < height; y++)
+			{
+				Color color = image.GetPixel(x, y);
 
-			unsigned char grayed = 0;
-			grayed += color.red() * 0.114;
-			grayed += color.green() * 0.587;
-			grayed += color.blue() * 0.299;
+				unsigned char grayed = 0;
+				grayed += color.red() * 0.114;
+				grayed += color.green() * 0.587;
+				grayed += color.blue() * 0.299;
 
-			image.SetPixel(x, y, Color(grayed, grayed, grayed));
+				image.SetPixel(x, y, Color(grayed, grayed, grayed));
+			}
 		}
 	}
 }
-
-
 
 void ConvolutionFilter(Bitmap &sourceImage, const double xkernel[][3], const double ykernel[][3], double factor, int bias, bool grayscale)
 {
@@ -82,20 +77,14 @@ void ConvolutionFilter(Bitmap &sourceImage, const double xkernel[][3], const dou
 	if (grayscale == true)
 	{
 		float rgb = 0;
-
-#pragma omp parallel for
 		for (int i = 0; i < sourceImage.GetPixelArraySize(); i += stepBytes)
 		{
-#ifdef DEBUG
-			Logger::PrintThreadForIteraction(i, 0);
-#endif // DEBUG
 			rgb = pixelBuffer[i] * .21f;
 			rgb += pixelBuffer[i + 1] * .71f;
 			rgb += pixelBuffer[i + 2] * .071f;
 			pixelBuffer[i] = rgb;
 			pixelBuffer[i + 1] = pixelBuffer[i];
 			pixelBuffer[i + 2] = pixelBuffer[i];
-			//pixelBuffer[i + 3] = 255;
 		}
 	}
 
@@ -120,56 +109,51 @@ void ConvolutionFilter(Bitmap &sourceImage, const double xkernel[][3], const dou
 	//this is so entire kernel is on your image
 	int OffsetY, OffsetX;
 
-#pragma omp parallel
+	for (OffsetY = filterOffset; OffsetY < height - filterOffset; OffsetY++)
 	{
-#pragma omp parallel for schedule(dynamic) private(OffsetX, OffsetY)
-		for (OffsetY = filterOffset; OffsetY < height - filterOffset; OffsetY++)
+		for (OffsetX = filterOffset; OffsetX < width - filterOffset; OffsetX++)
 		{
-			for (OffsetX = filterOffset; OffsetX < width - filterOffset; OffsetX++)
+			//reset rgb values to 0
+			xr = xg = xb = yr = yg = yb = 0;
+			rt = gt = bt = 0.0;
+
+			//position of the kernel center pixel
+			byteOffset = OffsetY * srcDataStride + OffsetX * stepBytes;
+
+			//kernel calculations
+			for (int filterY = -filterOffset; filterY <= filterOffset; filterY++)
 			{
-				//reset rgb values to 0
-				xr = xg = xb = yr = yg = yb = 0;
-				rt = gt = bt = 0.0;
-
-				//position of the kernel center pixel
-				byteOffset = OffsetY * srcDataStride + OffsetX * stepBytes;
-
-				//kernel calculations
-				for (int filterY = -filterOffset; filterY <= filterOffset; filterY++)
+				for (int filterX = -filterOffset; filterX <= filterOffset; filterX++)
 				{
-					for (int filterX = -filterOffset; filterX <= filterOffset; filterX++)
-					{
-						calcOffset = byteOffset + filterX * 4 + filterY * srcDataStride;
+					calcOffset = byteOffset + filterX * 4 + filterY * srcDataStride;
 
-						xb += (double)(pixelBuffer[calcOffset])     * xkernel[filterY + filterOffset][filterX + filterOffset];
-						xg += (double)(pixelBuffer[calcOffset + 1]) * xkernel[filterY + filterOffset][filterX + filterOffset];
-						xr += (double)(pixelBuffer[calcOffset + 2]) * xkernel[filterY + filterOffset][filterX + filterOffset];
+					xb += (double)(pixelBuffer[calcOffset])     * xkernel[filterY + filterOffset][filterX + filterOffset];
+					xg += (double)(pixelBuffer[calcOffset + 1]) * xkernel[filterY + filterOffset][filterX + filterOffset];
+					xr += (double)(pixelBuffer[calcOffset + 2]) * xkernel[filterY + filterOffset][filterX + filterOffset];
 
-						yb += (double)(pixelBuffer[calcOffset])     * ykernel[filterY + filterOffset][filterX + filterOffset];
-						yg += (double)(pixelBuffer[calcOffset + 1]) * ykernel[filterY + filterOffset][filterX + filterOffset];
-						yr += (double)(pixelBuffer[calcOffset + 2]) * ykernel[filterY + filterOffset][filterX + filterOffset];
-					}
+					yb += (double)(pixelBuffer[calcOffset])     * ykernel[filterY + filterOffset][filterX + filterOffset];
+					yg += (double)(pixelBuffer[calcOffset + 1]) * ykernel[filterY + filterOffset][filterX + filterOffset];
+					yr += (double)(pixelBuffer[calcOffset + 2]) * ykernel[filterY + filterOffset][filterX + filterOffset];
 				}
-
-				//total rgb values for this pixel
-				bt = sqrt((xb * xb) + (yb * yb));
-				gt = sqrt((xg * xg) + (yg * yg));
-				rt = sqrt((xr * xr) + (yr * yr));
-
-				//set limits, bytes can hold values from 0 up to 255;
-				if (bt > 255) bt = 255;
-				else if (bt < 0) bt = 0;
-				if (gt > 255) gt = 255;
-				else if (gt < 0) gt = 0;
-				if (rt > 255) rt = 255;
-				else if (rt < 0) rt = 0;
-
-				//set new data in the other byte array for your image data
-				resultBuffer[byteOffset] = (bt);
-				resultBuffer[byteOffset + 1] = (gt);
-				resultBuffer[byteOffset + 2] = (rt);
-				//resultBuffer[byteOffset + 3] = 255;
 			}
+
+			//total rgb values for this pixel
+			bt = sqrt((xb * xb) + (yb * yb));
+			gt = sqrt((xg * xg) + (yg * yg));
+			rt = sqrt((xr * xr) + (yr * yr));
+
+			//set limits, bytes can hold values from 0 up to 255;
+			if (bt > 255) bt = 255;
+			else if (bt < 0) bt = 0;
+			if (gt > 255) gt = 255;
+			else if (gt < 0) gt = 0;
+			if (rt > 255) rt = 255;
+			else if (rt < 0) rt = 0;
+
+			//set new data in the other byte array for your image data
+			resultBuffer[byteOffset] = (bt);
+			resultBuffer[byteOffset + 1] = (gt);
+			resultBuffer[byteOffset + 2] = (rt);
 		}
 	}
 	sourceImage.SetPixelData(resultBuffer);
@@ -204,7 +188,6 @@ void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], doub
 			pixelBuffer[i] = rgb;
 			pixelBuffer[i + 1] = pixelBuffer[i];
 			pixelBuffer[i + 2] = pixelBuffer[i];
-			//pixelBuffer[i + 3] = 255;
 		}
 	}
 
@@ -212,16 +195,14 @@ void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], doub
 	double green = 0.0;
 	double red = 0.0;
 
-	int filterWidth = 5;// filterMatrix.size(1);
-	int filterHeight = 5;//filterMatrix.size(0);
+	int filterWidth = 5;
+	int filterHeight = 5;
 
 	int filterOffset = (filterWidth - 1) / 2;
 	int calcOffset = 0;
 
 	int byteOffset = 0;
 
-	//////int offsetY, int offsetX;
-	//#pragma omp parallel for schedule(dynamic) private(offsetY, offsetX)
 	for (int offsetY = filterOffset; offsetY < height - filterOffset; offsetY++)
 	{
 		for (int offsetX = filterOffset; offsetX < width - filterOffset; offsetX++)
@@ -232,7 +213,6 @@ void ConvolutionFilter(Bitmap &sourceImage, const double filterMatrix[][5], doub
 
 			byteOffset = offsetY * srcDataStride + offsetX * stepBytes;
 
-#pragma omp parallel for schedule(dynamic) private(offsetY, offsetX)
 			for (int filterY = -filterOffset; filterY <= filterOffset; filterY++)
 			{
 				for (int filterX = -filterOffset; filterX <= filterOffset; filterX++)
@@ -276,7 +256,7 @@ void Effect::Blur(Bitmap & image)
 
 void Effect::Convolve(Bitmap & image, const double xkernel[][3], const double ykernel[][3], double factor, int bias, bool grayscale)
 {
-	ConvolutionFilter(image, xkernel, ykernel, 1, 0, false);
+	ConvolutionFilter(image, xkernel, ykernel, 1, 0, grayscale);
 }
 
 void Effect::Convolve(Bitmap & image, const double kernel[][5], double factor, int bias, bool grayscale)
