@@ -1,0 +1,4 @@
+/home/pedruino/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/181.4668.25/bin/cmake/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/pedruino/CLionProjects/OpenImageFilter
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/pedruino/CLionProjects/OpenImageFilter/cmake-build-debug

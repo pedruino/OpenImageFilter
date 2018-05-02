@@ -1,0 +1,1 @@
+/usr/bin/c++   -std=c++11 -fopenmp -g   CMakeFiles/OpenImageFilter.dir/src/main.cpp.o CMakeFiles/OpenImageFilter.dir/src/Bitmap.cpp.o CMakeFiles/OpenImageFilter.dir/src/Logger.cpp.o CMakeFiles/OpenImageFilter.dir/src/Filter.cpp.o  -o OpenImageFilter 
